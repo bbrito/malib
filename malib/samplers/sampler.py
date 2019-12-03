@@ -6,7 +6,7 @@ import os
 import subprocess
 
 def render(env, filepath, episode_step, stitch=False):
-    frame = env.render(mode="rgb_array")[0]
+    frame = env.render() # mode="rgb_array" [0]
     # Image.fromarray(frame).save(filepath + "." + ("%02d" % episode_step) + ".bmp")
     # if stitch:
     #     subprocess.run(["ffmpeg", "-v", "warning", "-r", "10", "-i", filepath + ".%02d.bmp", "-vcodec", "mpeg4", "-y", filepath + ".mp4"], shell=False, check=True)
@@ -14,11 +14,10 @@ def render(env, filepath, episode_step, stitch=False):
 
 
 class Sampler(object):
-    def __init__(self, max_path_length, min_pool_size, batch_size):
+    def __init__(self, max_path_length, min_pool_size, batch_size,print_freq=100):
         self._max_path_length = max_path_length
         self._min_pool_size = min_pool_size
         self._batch_size = batch_size
-
         self.env = None
         self.policy = None
         self.pool = None
@@ -49,7 +48,7 @@ class Sampler(object):
 
 
 class MASampler(Sampler):
-    def __init__(self, agent_num, max_path_length=20, min_pool_size=10e4, batch_size=64, global_reward=False, **kwargs):
+    def __init__(self, agent_num, max_path_length=20, min_pool_size=10e4, batch_size=64, global_reward=False, print_freq=100,**kwargs):
         # super(MASampler, self).__init__(**kwargs)
         self.agent_num = agent_num
         self._max_path_length = max_path_length
@@ -62,6 +61,7 @@ class MASampler(Sampler):
         self._max_path_return = np.array([-np.inf] * self.agent_num, dtype=np.float32)
         self._n_episodes = 0
         self._total_samples = 0
+        self._print_freq = print_freq
         # self.episode_rewards = [0]  # sum of rewards for all agents
         # self.agent_rewards = [[0] for _ in range(self.agent_num)] # individual agent reward
         self.step = 0
@@ -92,22 +92,25 @@ class MASampler(Sampler):
         action_n = []
         # print(self._current_observation_n)
         # print(self._current_observation_n.shape)
+        # gets next action for each agent
         if explore:
             action_n = self.env.action_spaces.sample()
         else:
             for agent, current_observation in zip(self.agents, self._current_observation_n):
+                # gets action with exploration noise
                 action = agent.act(current_observation.astype(np.float32))
                 action_n.append(np.array(action))
 
         action_n = np.asarray(action_n)
-
+        # gets next observation, reward according to the new action
         next_observation_n, reward_n, done_n, info = self.env.step(action_n)
         if self._global_reward:
             reward_n = np.array([np.sum(reward_n)] * self.agent_num)
-
+        #updates path length, return and number os samples
         self._path_length += 1
         self._path_return += np.array(reward_n, dtype=np.float32)
         self._total_samples += 1
+        # Now gets the opponent action and saves it to the buffer replay
         for i, agent in enumerate(self.agents):
             opponent_action = action_n[[j for j in range(len(action_n)) if j != i]].flatten()
             agent.replay_buffer.add_sample(
@@ -121,21 +124,23 @@ class MASampler(Sampler):
 
         self._current_observation_n = next_observation_n
 
-        if self._n_episodes % 100 == 0:
+        if self._n_episodes % self._print_freq == 0:
             render(self.env,
                    "/tmp/episode_%08d" % self._path_length,
                    self._path_length,)
-
+        # if episode is over or maximum length was surpassed
+        # reset observations and updates statistics
         if np.all(done_n) or self._path_length >= self._max_path_length:
             self._current_observation_n = self.env.reset()
             self._max_path_return = np.maximum(self._max_path_return, self._path_return)
             self._mean_path_return = self._path_return / self._path_length
             self._last_path_return = self._path_return
-            if self._n_episodes % 100 == 0:
+            if self._n_episodes % self._print_freq == 0:
                 render(self.env,
                        "/tmp/episode_%08d" % self._path_length,
                        self._path_length,
                        True)
+            # reset the other variables and increase episode number
             self._path_length = 0
             self._path_return = np.zeros(self.agent_num)
             self._n_episodes += 1

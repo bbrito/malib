@@ -61,10 +61,11 @@ class MADDPGAgent(OffPolicyAgent):
         # return policy.get_actions_np(observation)
         observation = np.array([observation])
         if self._exploration_strategy is not None and self._exploration_status:
-            if step is None:
+            if step is None: # first training step
                 step = self._train_step
             if step % self._exploration_interval == 0:
-                self._exploration_strategy.reset()
+                self._exploration_strategy.reset() # set the state of the exploration to zero
+            # gets action with exploration noise
             return self._exploration_strategy.get_action(self._train_step, observation, self._policy)
         policy = self._policy
         if use_target and self._target_policy is not None:
@@ -155,7 +156,7 @@ class MADDPGAgent(OffPolicyAgent):
         critic_loss = tf.reduce_mean(critic_loss)
         return critic_loss
 
-    @tf.function
+    #@tf.function
     def actor_loss(self, observations, opponent_actions, weights=None):
         """Computes the actor_loss for DDPG training.
         Args:

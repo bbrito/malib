@@ -146,7 +146,7 @@ def get_pr2_agent(env, agent_id, hidden_layer_sizes, max_replay_buffer_size, pol
     action_space = env.env_specs.action_space[agent_id]
     opponent_action_shape = (env.env_specs.action_space.opponent_flat_dim(agent_id),)
     print(opponent_action_shape, 'opponent_action_shape')
-    if policy_type == 'dete':
+    if policy_type == 'deter':
         policy_fn = DeterministicMLPPolicy
         exploration_strategy = OUExploration(action_space)
     elif policy_type == 'gumble':

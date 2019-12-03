@@ -6,10 +6,20 @@ import tensorflow as tf
 
 def add_target_actions(batch_n, agents, batch_size):
     target_actions_n = []
+    # is this correct? for the batch the colon is for batch index
+    #for i, agent in enumerate(agents):
+    #    print(batch_n[i]['next_observations'].shape)
+    #    target_actions_n.append(agent.act(batch_n[i]['next_observations'], use_target=True))
+
     for i, agent in enumerate(agents):
         print(batch_n[i]['next_observations'].shape)
-        target_actions_n.append(agent.act(batch_n[i]['next_observations'], use_target=True))
-
+        if len(batch_n[i]['next_observations'].shape)>1:
+            for batch_id in range(batch_n[i]['next_observations'].shape[0]):
+                batch_n[i]['next_observations'][batch_id] = agent.act(batch_n[i]['next_observations'][batch_id], use_target=True)
+            target_actions_n.append(batch_n[i]['next_observations'])
+        else:
+            target_actions_n.append(agent.act(batch_n[i]['next_observations'], use_target=True))
+    # what is target actions for? is this the next predicted actions?
     for i in range(len(agents)):
         target_actions = target_actions_n[i]
         opponent_target_actions = np.reshape(np.delete(deepcopy(target_actions_n), i, 0), (batch_size, -1))

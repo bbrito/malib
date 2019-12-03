@@ -64,13 +64,17 @@ class MATrainer:
                 continue
 
             self.sampler.sample()
+            # train every # of iterations
             if step % self.training_interval == 0:
                 batches = self.sample_batches()
+                # why do you use this?
                 for extra_experience in self.extra_experiences:
                     if extra_experience == 'annealing':
                         batches = add_annealing(batches, step - self.exploration_steps, annealing_scale=1.)
                         # print('annealing', batches[0]['annealing'])
                     elif extra_experience == 'target_actions':
+                        print("Dies here: ValueError: Error when checking input: expected input_1 to have 2 dimensions, but got array with shape (1, 128, 1)")
+                        # dies here
                         batches = add_target_actions(batches, self.agents, self.batch_size)
                     elif extra_experience == 'recent_experiences':
                         batches = add_recent_batches(batches, self.agents, self.batch_size)

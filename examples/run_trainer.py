@@ -18,14 +18,15 @@ set_logger(suffix)
 agent_num = 2
 batch_size = 128
 training_steps = 10000
-exploration_step = 1000
+exploration_step = 1
 hidden_layer_sizes = (10, 10)
 max_replay_buffer_size = 1e5
 
 env = DifferentialGame(game_name, agent_num)
 agents = []
 for i in range(agent_num):
-    agent = get_maddpg_agent(env, i, hidden_layer_sizes=hidden_layer_sizes, max_replay_buffer_size=max_replay_buffer_size)
+    #agent = get_maddpg_agent(env, i, hidden_layer_sizes=hidden_layer_sizes, max_replay_buffer_size=max_replay_buffer_size)
+    agent = get_pr2_agent(env, i, hidden_layer_sizes=hidden_layer_sizes, max_replay_buffer_size=max_replay_buffer_size)
     agents.append(agent)
 
 sampler = MASampler(agent_num)

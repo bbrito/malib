@@ -66,6 +66,7 @@ class OUExploration(ExplorationBase):
 
         action = policy.get_action_np(observation, extend_dim=extend_dim)
         ou_state = self.simulate()
+        # add exploration noise to action and clip it to boundary values
         return np.clip(action + ou_state, self.action_space.low,
                        self.action_space.high)
 
